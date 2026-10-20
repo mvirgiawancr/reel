@@ -34,7 +34,14 @@ export default function Page() {
   const [history, setHistory] = useState<BriefResult[]>([]);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => setHistory(loadHistory()), []);
+  useEffect(() => {
+    setHistory(loadHistory());
+    // development: /?sample opens the last saved brief (see app/api/sample)
+    if (new URLSearchParams(location.search).has("sample"))
+      fetch("/api/sample")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((b) => b && setView({ kind: "brief", brief: b }));
+  }, []);
 
   function remember(b: BriefResult) {
     const next = [b, ...history.filter((h) => h.madeAt !== b.madeAt)].slice(0, 8);

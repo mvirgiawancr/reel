@@ -1,6 +1,6 @@
 import "server-only";
 import { chat, parseJson, type Message, type ToolSpec } from "./llm";
-import { findTags, insights, searchEntities } from "./qloo";
+import { entityImage, entityNotes, findTags, insights, searchEntities } from "./qloo";
 import {
   AGE_BANDS,
   DOMAINS,
@@ -174,6 +174,8 @@ async function gatherTaste(signals: Signals, emit: Emit): Promise<DomainResult[]
           domain: d.type,
           affinity: round3(e.query?.affinity ?? 0),
           traits: (e.tags ?? []).map((t) => t.name).filter(Boolean).slice(0, 8),
+          image: entityImage(e),
+          notes: entityNotes(e) || undefined,
         }));
         emit({ type: "step", id, label: `Asking Qloo what they love in ${d.label.toLowerCase()}`, detail: entities.length ? `${entities.length} found, top: ${entities[0].name}` : "nothing found", status: "done" });
         return { type: d.type, label: d.label, average: entities.length ? round3(avg(entities.map((e) => e.affinity))) : null, entities };
@@ -211,16 +213,16 @@ Write only from that data. Every claim about the audience's taste must cite the 
 Use the domain averages. Lean on the strongest domains. A domain marked WEAK is one this audience does not over-index on: do not build ideas on it, and mention it at most once, as something to leave out of the work.
 Style: plain, specific, warm, no hype words, no em dashes, short sentences. Write for a designer who has to make work tomorrow.
 Reply with JSON only, in this shape:
-{"who":["paragraph"],"mood":["paragraph"],"tone":["paragraph"],"lines":["3 short sample lines in the tone, no citations"],"palette":[{"name":"","hex":"#rrggbb"}],"palette_note":"one paragraph with citations on where the palette comes from","collabs":["paragraph"]}
-who: 1-2 paragraphs on who they are, through what they love. mood: 1 paragraph on mood and art direction. tone: 1 paragraph on tone of voice. palette: exactly 4 colours; each name must honestly describe its hex (a pale cream is not "terracotta"). collabs: 1 paragraph of concrete collaboration or placement ideas.`;
+{"who":["paragraph"],"mood":["paragraph"],"tone":["paragraph"],"lines":["3 short sample lines in the tone, no citations"],"imagery":"one paragraph with citations on colour, light, texture and photography, drawn from the descriptions of what they love","collabs":["paragraph"]}
+who: 1-2 paragraphs on who they are, through what they love. mood: 1 paragraph on mood and art direction. tone: 1 paragraph on tone of voice. imagery: what the pictures and colours should feel like (the app shows a palette sampled from the cover art of what they love, so do not invent hex codes). collabs: 1 paragraph of concrete collaboration or placement ideas.
+Each item may carry Qloo's own description of its aesthetic, tone or fans after a "|". Use those words as evidence for mood, tone and imagery.`;
 
 interface WriterReply {
   who: string[];
   mood: string[];
   tone: string[];
   lines: string[];
-  palette: { name: string; hex: string }[];
-  palette_note: string;
+  imagery: string;
   collabs: string[];
 }
 
@@ -232,7 +234,9 @@ async function writeBrief(input: BriefInput, domains: DomainResult[], traits: Br
       if (d.average === null) return `${d.label}: NO DATA (the lookup failed; say nothing about this domain)`;
       const weak = d.average < top - 0.05;
       const head = `${d.label} (average affinity ${d.average})${weak ? " WEAK" : ""}`;
-      const items = d.entities.map((e) => `  ${e.ref} ${e.name} — affinity ${e.affinity}${e.traits.length ? `; ${e.traits.slice(0, 4).join(", ")}` : ""}`);
+      const items = d.entities.map(
+        (e) => `  ${e.ref} ${e.name} — affinity ${e.affinity}${e.traits.length ? `; ${e.traits.slice(0, 4).join(", ")}` : ""}${e.notes ? ` | ${e.notes}` : ""}`,
+      );
       return [head, ...items].join("\n");
     })
     .join("\n");
@@ -265,11 +269,30 @@ ${lines}`,
     { key: "who", title: "Who they are", paragraphs: para(w.who) },
     { key: "mood", title: "Mood and art direction", paragraphs: para(w.mood) },
     { key: "tone", title: "Tone of voice", paragraphs: para(w.tone) },
-    { key: "palette", title: "Palette direction", paragraphs: para(w.palette_note ? [w.palette_note] : []) },
+    { key: "palette", title: "Colour and imagery", paragraphs: para(w.imagery ? [w.imagery] : []) },
     { key: "collabs", title: "Collaborations", paragraphs: para(w.collabs) },
   ];
-  const palette = (w.palette ?? []).filter((c) => /^#[0-9a-f]{6}$/i.test(c.hex)).slice(0, 4);
-  return { sections, lines: (w.lines ?? []).filter(Boolean).slice(0, 3), palette };
+  return { sections, lines: (w.lines ?? []).filter(Boolean).slice(0, 3) };
+}
+
+const GENERIC = `You are a creative strategist. Write a short creative brief for the target audience below, from your own general knowledge only.
+Reply with JSON only: {"who":"one paragraph","mood":"one paragraph","tone":"one paragraph","collabs":"one paragraph"}. Plain words, no em dashes.`;
+
+/** The comparison: the same brief from the audience sentence alone, with no Qloo data. Failure is not fatal. */
+async function writeGeneric(input: BriefInput): Promise<BriefResult["generic"]> {
+  try {
+    const reply = await chat(
+      [
+        { role: "system", content: GENERIC },
+        { role: "user", content: `Audience: ${input.audience}` },
+      ],
+      { json: true, temperature: 0.6 },
+    );
+    const g = parseJson<{ who: string; mood: string; tone: string; collabs: string }>(reply.content);
+    return g.who ? { who: g.who, mood: g.mood ?? "", tone: g.tone ?? "", collabs: g.collabs ?? "" } : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Split "text [E1, E3] more text" into segments; drop any ref the data does not contain. */
@@ -306,6 +329,11 @@ export async function runBrief(input: BriefInput, emit: Emit): Promise<BriefResu
     status: "done",
   });
 
+  emit({ type: "step", id: "generic", label: "Writing a version without Qloo, for comparison", status: "running" });
+  const genericP = writeGeneric(input).then((g) => {
+    emit({ type: "step", id: "generic", label: "Writing a version without Qloo, for comparison", detail: g ? undefined : "skipped", status: "done" });
+    return g;
+  });
   const domains = await gatherTaste(signals, emit);
   if (!domains.some((d) => d.entities.length)) throw new Error("Qloo returned nothing for these signals. Try a broader description.");
   const traits = sharedTraits(domains);
@@ -314,7 +342,8 @@ export async function runBrief(input: BriefInput, emit: Emit): Promise<BriefResu
   const written = await writeBrief(input, domains, traits);
   emit({ type: "step", id: "write", label: "Writing the brief from the taste data", status: "done" });
 
-  return { audience: input.audience, madeAt: new Date().toISOString(), signals, domains, traits, ...written };
+  const generic = await genericP;
+  return { audience: input.audience, madeAt: new Date().toISOString(), signals, domains, traits, ...written, generic };
 }
 
 /** Run fn over items with at most `limit` in flight, keeping the input order. */

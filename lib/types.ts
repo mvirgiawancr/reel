@@ -15,9 +15,9 @@ export const DOMAINS: { type: Domain; label: string }[] = [
   { type: "tv_show", label: "TV" },
   { type: "book", label: "Books" },
   { type: "brand", label: "Brands" },
-  { type: "place", label: "Places" },
-  { type: "destination", label: "Destinations" },
 ];
+// Places and destinations are left out on purpose: on the hackathon host places time out without a
+// location, and destinations returned the same list (Shanghai first, 0.765) for every audience we tried.
 
 export const AGE_BANDS = [
   { id: "24_and_younger", label: "24 and younger" },
@@ -44,6 +44,8 @@ export interface Entity {
   domain: Domain;
   affinity: number;
   traits: string[];
+  image?: string; // https://images.qloo.com/…
+  notes?: string; // descriptive properties from Qloo, used by the writer
 }
 
 export interface Signals {
@@ -80,7 +82,8 @@ export interface BriefResult {
   traits: { name: string; count: number }[];
   sections: BriefSection[];
   lines: string[];
-  palette: { name: string; hex: string }[];
+  /** The same brief written from the audience sentence alone, with no Qloo data: the comparison. */
+  generic: { who: string; mood: string; tone: string; collabs: string } | null;
 }
 
 export type StepStatus = "running" | "done" | "error";

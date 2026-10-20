@@ -67,6 +67,41 @@ export interface QlooEntity {
   name: string;
   query?: { affinity?: number };
   tags?: { id?: string; name: string; type?: string }[];
+  properties?: Record<string, unknown> & { image?: { url?: string } };
+}
+
+// Descriptive properties worth handing to the writer, in order of how much they say about taste.
+const NOTE_KEYS = [
+  "aesthetic_properties",
+  "emotional_tone",
+  "emotional_tone_description",
+  "adjectives_for_music",
+  "creative_and_specific_adjectives_for_music",
+  "adjectives_for_fans",
+  "audience_identity",
+  "aspirational_lifestyle",
+  "core_values",
+  "genre_description",
+  "description",
+];
+
+/** A short plain-text summary of an entity's descriptive properties (no more than ~220 characters). */
+export function entityNotes(e: QlooEntity): string {
+  const props = e.properties ?? {};
+  const parts: string[] = [];
+  for (const k of NOTE_KEYS) {
+    const v = props[k];
+    const text = Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 4).join(", ") : typeof v === "string" ? v : "";
+    if (text) parts.push(text.replace(/\s+/g, " ").trim());
+    if (parts.join("; ").length > 220) break;
+  }
+  const out = parts.join("; ");
+  return out.length > 240 ? out.slice(0, 237).replace(/\s\S*$/, "") + "…" : out;
+}
+
+export function entityImage(e: QlooEntity): string | undefined {
+  const url = e.properties?.image?.url;
+  return typeof url === "string" && url.startsWith("https://images.qloo.com/") ? url : undefined;
 }
 
 export interface InsightSignals {

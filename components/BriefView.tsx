@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { samplePalette, type Swatch } from "@/lib/palette";
 import type { BriefResult, Entity } from "@/lib/types";
 
 const DOMAIN_NAME: Record<string, string> = {
@@ -17,6 +18,8 @@ const DOMAIN_NAME: Record<string, string> = {
 export default function BriefView({ brief }: { brief: BriefResult }) {
   const [active, setActive] = useState<number | null>(null);
   const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<"qloo" | "plain">("qloo");
+  const [palette, setPalette] = useState<Swatch[] | null>(null);
 
   const all = useMemo(() => brief.domains.flatMap((d) => d.entities), [brief]);
   const byRef = useMemo(() => new Map(all.map((e) => [e.ref, e])), [all]);
@@ -51,6 +54,27 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
       .sort((a, b) => b.affinity - a.affinity);
   }, [all, query]);
 
+  // Moodboard: the strongest pictures per domain, strongest domains first, nine in all.
+  const board = useMemo(() => {
+    const ranked = [...brief.domains].filter((d) => d.average !== null).sort((a, b) => b.average! - a.average!);
+    const picks: Entity[] = [];
+    for (let round = 0; round < 3 && picks.length < 9; round++)
+      for (const d of ranked) {
+        const withImg = d.entities.filter((e) => e.image);
+        if (withImg[round] && picks.length < 9) picks.push(withImg[round]);
+      }
+    return picks;
+  }, [brief]);
+
+  useEffect(() => {
+    let live = true;
+    setPalette(null);
+    samplePalette(board.map((e) => e.image!)).then((p) => live && setPalette(p));
+    return () => {
+      live = false;
+    };
+  }, [board]);
+
   const signalText = [...brief.signals.tags.map((t) => t.name), ...brief.signals.entities.map((e) => e.name)].join(", ");
   const made = new Date(brief.madeAt);
 
@@ -62,6 +86,20 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
         {made.toLocaleDateString(undefined, { day: "numeric", month: "short" })},{" "}
         {made.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
       </div>
+
+      {board.length > 0 && (
+        <div className="mood" aria-label="Moodboard from what this audience loves">
+          {board.map((e, i) => (
+            <figure key={e.ref} className={i === 0 ? "tile lead" : "tile"}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={e.image} alt={`${e.name}, ${DOMAIN_NAME[e.domain].toLowerCase()} this audience loves`} />
+              <figcaption>
+                <span className="name">{e.name}</span> <span className="dom">{DOMAIN_NAME[e.domain]}</span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
 
       <div className="stats">
         <div className="card stat">
@@ -93,8 +131,38 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
 
       <div className="doc">
         <article className="card brief">
-          {brief.sections
-            .filter((s) => s.paragraphs.length || (s.key === "palette" && brief.palette.length))
+          {brief.generic && (
+            <div className="versions" role="tablist" aria-label="Which version of the brief">
+              <button role="tab" aria-selected={mode === "qloo"} onClick={() => setMode("qloo")}>
+                With Qloo
+              </button>
+              <button role="tab" aria-selected={mode === "plain"} onClick={() => setMode("plain")}>
+                Without Qloo
+              </button>
+              <span className="versions-note">
+                {mode === "qloo"
+                  ? "Written from the taste data. Every number links to its evidence."
+                  : "The same request to the same model, with only the sentence. Nothing to cite."}
+              </span>
+            </div>
+          )}
+          {mode === "plain" && brief.generic ? (
+            (
+              [
+                ["Who they are", brief.generic.who],
+                ["Mood and art direction", brief.generic.mood],
+                ["Tone of voice", brief.generic.tone],
+                ["Collaborations", brief.generic.collabs],
+              ] as const
+            ).map(([title, text]) => (
+              <section key={title}>
+                <h2>{title}</h2>
+                <p>{text}</p>
+              </section>
+            ))
+          ) : (
+          brief.sections
+            .filter((s) => s.paragraphs.length)
             .map((s) => (
               <section key={s.key}>
                 <h2>{s.title}</h2>
@@ -129,23 +197,28 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
                     ))}
                   </ul>
                 )}
-                {s.key === "palette" && brief.palette.length > 0 && (
-                  <div className="swatches">
-                    {brief.palette.map((c) => (
-                      <div key={c.hex + c.name} className="sw num" style={{ background: c.hex, color: textOn(c.hex) }}>
-                        {c.name} {c.hex.toLowerCase()}
-                      </div>
-                    ))}
-                  </div>
+                {s.key === "palette" && palette && palette.length > 0 && (
+                  <>
+                    <div className="swatches">
+                      {palette.slice(0, 5).map((c) => (
+                        <div key={c.hex} className="sw num" style={{ background: c.hex, color: textOn(c.hex) }}>
+                          {c.name} {c.hex}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="swatch-note">Sampled from the cover art in the moodboard, largest share first.</div>
+                  </>
                 )}
               </section>
-            ))}
+            ))
+          )}
         </article>
 
         <aside className="card evidence" aria-label="Evidence from Qloo">
           <h2>Evidence</h2>
-          {groups.length === 0 && <p className="empty-note">The writer cited nothing this time.</p>}
-          {groups.flatMap((g) =>
+          {mode === "plain" && <p className="empty-note">This version used no data, so there is nothing to show here. Switch back to compare.</p>}
+          {mode === "qloo" && groups.length === 0 && <p className="empty-note">The writer cited nothing this time.</p>}
+          {mode === "qloo" && groups.flatMap((g) =>
             g.refs.map((r) => {
               const e = byRef.get(r);
               return e ? <Ref key={g.n + r} n={g.n} e={e} on={active === g.n} /> : null;

@@ -21,7 +21,6 @@ export function toMarkdown(b: BriefResult): string {
     out.push(`## ${s.title}`, "");
     for (const p of s.paragraphs) out.push(p.map((seg) => seg.text + (seg.cites ? cite(seg.cites) : "")).join(""), "");
     if (s.key === "tone" && b.lines.length) out.push(...b.lines.map((l) => `> ${l}`), "");
-    if (s.key === "palette" && b.palette.length) out.push(...b.palette.map((c) => `- ${c.name} ${c.hex}`), "");
   }
   out.push("## Where their taste is strongest", "");
   for (const d of b.domains) out.push(`- ${d.label}: ${d.average ?? "no data"}`);
