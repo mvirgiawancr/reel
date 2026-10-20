@@ -1,0 +1,7 @@
+.env*
+.cache/
+node_modules/
+.next/
+.taste-skill/
+*.tsbuildinfo
+next-env.d.ts
