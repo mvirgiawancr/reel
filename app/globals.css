@@ -47,6 +47,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .btn-secondary:hover { background: #dadada; }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
+h1, h2 { text-wrap: balance; }
+button { touch-action: manipulation; }
 h1 { font-size: 24px; line-height: 1.25; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
 h2 { font-size: 16px; line-height: 1.3; font-weight: 600; margin: 0 0 8px; }
 .muted { color: var(--muted); }
@@ -57,7 +59,8 @@ h2 { font-size: 16px; line-height: 1.3; font-weight: 600; margin: 0 0 8px; }
 .home .lede { font-size: 16px; line-height: 1.55; color: var(--text); margin: 14px 0 28px; max-width: 58ch; }
 .ask { padding: 20px; }
 .ask textarea { width: 100%; min-height: 104px; resize: vertical; border: 0; padding: 0; font-size: 20px; line-height: 1.4; background: transparent; }
-.ask textarea:focus { outline: none; }
+.ask textarea:focus-visible { outline: none; }
+.ask:focus-within { border-color: var(--pencil); box-shadow: 0 0 0 1px var(--pencil); }
 .ask textarea::placeholder { color: #9a9a9a; }
 .ask .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-top: 14px; margin-top: 12px; border-top: 1px solid var(--rule); }
 .field-label { color: var(--muted); font-size: 13px; margin-right: 2px; }
@@ -113,11 +116,17 @@ h2 { font-size: 16px; line-height: 1.3; font-weight: 600; margin: 0 0 8px; }
 .lines { margin: 12px 0 0; padding: 0; list-style: none; }
 .lines li { font-size: 20px; font-weight: 500; letter-spacing: -0.01em; padding: 5px 0; }
 .swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
-.sw { height: 64px; border-radius: 6px; display: flex; align-items: flex-end; padding: 8px; font-size: 12px; }
+.sw { display: grid; gap: 2px; font-size: 12px; min-width: 0; }
+.sw .chip { height: 56px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06); margin-bottom: 6px; }
+.sw-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw-hex { color: var(--muted); }
 
-.evidence { padding: 20px; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+.evidence { padding: 20px; align-self: stretch; }
+.evidence-inner { position: sticky; top: 16px; max-height: calc(100vh - 72px); overflow: auto; }
 .evidence h2 { font-size: 14px; }
-.ref { display: grid; grid-template-columns: 22px minmax(0, 1fr) 44px; gap: 8px; align-items: baseline; padding: 7px 4px; border-top: 1px solid var(--rule); border-radius: 4px; }
+.ref { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 7px 4px; border-top: 1px solid var(--rule); border-radius: 4px; }
+.ref-list { display: grid; gap: 4px; min-width: 0; }
+.ref-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; }
 .ref:first-of-type { border-top: 0; }
 .ref[data-on="true"] { background: var(--pencil-tint); }
 .ref .n { font-size: 11px; font-weight: 600; color: var(--pencil); }
@@ -152,7 +161,7 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 1120px) {
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .doc { grid-template-columns: 1fr; }
-  .evidence { position: static; max-height: none; }
+  .evidence-inner { position: static; max-height: none; }
   .charts { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
@@ -184,13 +193,14 @@ tr:last-child td { border-bottom: 0; }
 .versions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: -6px 0 22px; padding-bottom: 16px; border-bottom: 1px solid var(--rule); }
 .versions button { height: 30px; padding: 0 12px; border-radius: var(--radius-control); border: 0; background: transparent; color: var(--muted); font-weight: 500; cursor: pointer; }
 .versions button:hover { color: var(--text); }
-.versions button[aria-selected="true"] { background: #e5e5e5; color: var(--text); }
+.versions button[aria-pressed="true"] { background: #e5e5e5; color: var(--text); }
 .versions-note { color: var(--muted); font-size: 13px; margin-left: 8px; }
 .swatches { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .swatch-note { color: var(--muted); font-size: 12px; margin-top: 8px; }
 
 @media (max-width: 640px) {
   .mood { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tile:not(.lead) figcaption .dom { display: none; }
   .versions-note { margin-left: 0; width: 100%; }
   .swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

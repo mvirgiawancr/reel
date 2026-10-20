@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 
@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description:
     "Describe an audience in plain words. Brief asks the Qloo taste graph what else they love and writes a creative brief from it, with every claim traced to its source.",
 };
+
+export const viewport: Viewport = { themeColor: "#f4f3f1" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

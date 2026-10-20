@@ -112,7 +112,7 @@ export default function Page() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {
-      setError("Copying was blocked by the browser.");
+      setError("Copying was blocked by the browser. Select the brief and copy it by hand.");
     }
   }
 
@@ -135,7 +135,7 @@ export default function Page() {
         <span className="spacer" />
         {view.kind === "brief" && (
           <>
-            <button className="btn btn-secondary hide-sm" onClick={() => copy(view.brief)}>
+            <button className="btn btn-secondary hide-sm" aria-live="polite" onClick={() => copy(view.brief)}>
               {copied ? "Copied" : "Copy as Markdown"}
             </button>
             <button className="btn btn-primary" onClick={home}>
@@ -150,7 +150,7 @@ export default function Page() {
           <h1>Who are you designing for?</h1>
           <p className="lede">
             Describe an audience in your own words. Brief asks the Qloo taste graph what else they love, across music, film, TV, books,
-            podcasts, brands and places, and writes the creative brief from that, with every claim traced to its source.
+            podcasts and brands, and writes the creative brief from that, with every claim traced to its source.
           </p>
 
           <form
@@ -165,6 +165,8 @@ export default function Page() {
             </label>
             <textarea
               id="audience"
+              name="audience"
+              autoComplete="off"
               value={audience}
               onChange={(e) => setAudience(e.target.value)}
               placeholder="Women 25–34 who love specialty coffee and indie folk"
@@ -249,8 +251,8 @@ export default function Page() {
           <div className="card trace">
             {steps.length === 0 && (
               <div className="step">
-                <span className="glyph running" />
-                <span className="label">Starting the agent</span>
+                <span className="glyph running" role="img" aria-label="running" />
+                <span className="label">Starting the agent…</span>
               </div>
             )}
             {steps.map((s) => (
@@ -272,16 +274,16 @@ export default function Page() {
 }
 
 function Glyph({ status }: { status: StepStatus }) {
-  if (status === "running") return <span className="glyph running" aria-label="running" />;
+  if (status === "running") return <span className="glyph running" role="img" aria-label="running" />;
   if (status === "error")
     return (
-      <svg className="glyph" viewBox="0 0 16 16" aria-label="failed">
+      <svg className="glyph" viewBox="0 0 16 16" role="img" aria-label="failed">
         <circle cx="8" cy="8" r="7" fill="#c4242a" />
         <path d="M8 4.5v4.5M8 11v.5" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
       </svg>
     );
   return (
-    <svg className="glyph" viewBox="0 0 16 16" aria-label="done">
+    <svg className="glyph" viewBox="0 0 16 16" role="img" aria-label="done">
       <circle cx="8" cy="8" r="7" fill="#141414" />
       <path d="M5 8.2l2 2 4-4.4" stroke="#fff" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>

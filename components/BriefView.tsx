@@ -45,7 +45,8 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
   const lo = Math.max(0, Math.floor(((weakest?.average ?? 0.5) - 0.05) * 20) / 20);
   const ticks = Array.from({ length: Math.round((1 - lo) / 0.05) + 1 }, (_, i) => lo + i * 0.05).filter((_, i, a) => a.length <= 7 || i % 2 === 0);
   const pct = (v: number) => `${(((v - lo) / (1 - lo)) * 100).toFixed(1)}%`;
-  const maxTrait = Math.max(1, ...brief.traits.map((t) => t.count));
+  const traits = brief.traits.slice(0, brief.domains.length);
+  const maxTrait = Math.max(1, ...traits.map((t) => t.count));
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -92,7 +93,7 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
           {board.map((e, i) => (
             <figure key={e.ref} className={i === 0 ? "tile lead" : "tile"}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={e.image} alt={`${e.name}, ${DOMAIN_NAME[e.domain].toLowerCase()} this audience loves`} />
+              <img src={e.image} alt={`${e.name}, ${DOMAIN_NAME[e.domain].toLowerCase()} this audience loves`} width={320} height={320} />
               <figcaption>
                 <span className="name">{e.name}</span> <span className="dom">{DOMAIN_NAME[e.domain]}</span>
               </figcaption>
@@ -132,11 +133,11 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
       <div className="doc">
         <article className="card brief">
           {brief.generic && (
-            <div className="versions" role="tablist" aria-label="Which version of the brief">
-              <button role="tab" aria-selected={mode === "qloo"} onClick={() => setMode("qloo")}>
+            <div className="versions" role="group" aria-label="Which version of the brief">
+              <button type="button" aria-pressed={mode === "qloo"} onClick={() => setMode("qloo")}>
                 With Qloo
               </button>
-              <button role="tab" aria-selected={mode === "plain"} onClick={() => setMode("plain")}>
+              <button type="button" aria-pressed={mode === "plain"} onClick={() => setMode("plain")}>
                 Without Qloo
               </button>
               <span className="versions-note">
@@ -201,8 +202,10 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
                   <>
                     <div className="swatches">
                       {palette.slice(0, 5).map((c) => (
-                        <div key={c.hex} className="sw num" style={{ background: c.hex, color: textOn(c.hex) }}>
-                          {c.name} {c.hex}
+                        <div key={c.hex} className="sw num">
+                          <span className="chip" style={{ background: c.hex }} />
+                          <span className="sw-name">{c.name}</span>
+                          <span className="sw-hex">{c.hex}</span>
                         </div>
                       ))}
                     </div>
@@ -215,15 +218,19 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
         </article>
 
         <aside className="card evidence" aria-label="Evidence from Qloo">
+          <div className="evidence-inner">
           <h2>Evidence</h2>
           {mode === "plain" && <p className="empty-note">This version used no data, so there is nothing to show here. Switch back to compare.</p>}
           {mode === "qloo" && groups.length === 0 && <p className="empty-note">The writer cited nothing this time.</p>}
-          {mode === "qloo" && groups.flatMap((g) =>
-            g.refs.map((r) => {
-              const e = byRef.get(r);
-              return e ? <Ref key={g.n + r} n={g.n} e={e} on={active === g.n} /> : null;
-            }),
-          )}
+          {mode === "qloo" &&
+            groups.map((g) => {
+              const seen = new Set<string>();
+              const ents = g.refs
+                .map((r) => byRef.get(r))
+                .filter((e): e is Entity => !!e && !seen.has(e.name) && !!seen.add(e.name));
+              return <RefGroup key={g.n} n={g.n} ents={ents} on={active === g.n} />;
+            })}
+          </div>
         </aside>
       </div>
 
@@ -251,12 +258,12 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
         <div className="card chart">
           <h2>Traits they keep coming back to</h2>
           <div className="sub num">How many of the {all.length} things carry each Qloo tag</div>
-          {brief.traits.length === 0 ? (
+          {traits.length === 0 ? (
             <p className="empty-note">No tag appears more than once across domains.</p>
           ) : (
             <>
               <div className="bars num">
-                {brief.traits.map((t) => (
+                {traits.map((t) => (
                   <Bar key={t.name} label={t.name} width={`${(t.count / maxTrait) * 100}%`} value={String(t.count)} ink />
                 ))}
               </div>
@@ -277,7 +284,7 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
       <div className="card ledger">
         <header>
           <h2 style={{ margin: 0 }}>Everything Qloo returned</h2>
-          <input className="search" placeholder={`Search ${all.length} things`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search the taste ledger" />
+          <input className="search" name="ledger-search" type="search" autoComplete="off" placeholder={`Search ${all.length} things…`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search the taste ledger" />
         </header>
         <div className="table-wrap">
           <table className="num">
@@ -314,14 +321,20 @@ export default function BriefView({ brief }: { brief: BriefResult }) {
   );
 }
 
-function Ref({ n, e, on }: { n: number; e: Entity; on: boolean }) {
+function RefGroup({ n, ents, on }: { n: number; ents: Entity[]; on: boolean }) {
   return (
     <div className="ref num" data-on={on}>
       <span className="n">{n}</span>
-      <span>
-        <span className="name">{e.name}</span> <span className="dom">{DOMAIN_NAME[e.domain]}</span>
+      <span className="ref-list">
+        {ents.map((e) => (
+          <span key={e.ref} className="ref-row">
+            <span>
+              <span className="name">{e.name}</span> <span className="dom">{DOMAIN_NAME[e.domain]}</span>
+            </span>
+            <span className="aff">{e.affinity.toFixed(3)}</span>
+          </span>
+        ))}
       </span>
-      <span className="aff">{e.affinity.toFixed(3)}</span>
     </div>
   );
 }
@@ -336,8 +349,3 @@ function Bar({ label, width, value, ink }: { label: string; width: string | null
   );
 }
 
-function textOn(hex: string) {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return lum > 0.55 ? "#0a0a0a" : "#ffffff";
-}
