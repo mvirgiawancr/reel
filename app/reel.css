@@ -81,6 +81,9 @@ img { display: block; max-width: 100%; }
 .suggest .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; }
 .suggest .kd { font-size: var(--step-small); }
 .suggest .note { padding: 10px 12px; font-size: 15px; color: var(--muted); }
+/* the hero's one action: as tall as the field it sits beside, and set large enough to read as the way in */
+.ticket .picker input { height: 64px; font-size: 20px; }
+.ticket .btn { height: 64px; padding: 0 30px; font-size: 34px; letter-spacing: 0.04em; }
 .now { margin-top: 14px; font-size: var(--step-small); color: var(--muted); min-height: 22px; }
 .now b { color: var(--ink); font-weight: 500; }
 
@@ -191,6 +194,8 @@ img { display: block; max-width: 100%; }
   .topbar .mark { margin-right: auto; }
   .ticket { padding: 16px; }
   .ticket p { font-size: 17px; }
+  .ticket .picker input { height: 56px; font-size: 18px; }
+  .ticket .btn { height: 56px; padding: 0 20px; font-size: 28px; }
   .cta { min-height: 46svh; }
   .cta .lead { font-size: 17px; max-width: 24ch; }
   .cta svg { width: 32px; height: 32px; }
