@@ -238,9 +238,8 @@ export default function Landing() {
           </p>
           <div className="ev rise">
             <div className="ev-title">
-              <small>Now showing</small>
               <strong>Late trains and paper lanterns</strong>
-              <em>An example. Yours is written from your own matches.</em>
+              <em>An example title card. Yours is written from your own matches.</em>
             </div>
           </div>
           <p className="rise">
@@ -275,10 +274,12 @@ export default function Landing() {
       </section>
 
       <Link className="cta" href={playHref}>
-        <span className="lead">Pick your five. The reel rolls in under half a minute.</span>
-        <svg viewBox="0 0 48 48" aria-hidden="true">
-          <path d="M12 36L36 12M16 12h20v20" fill="none" stroke="currentColor" strokeWidth="4" />
-        </svg>
+        <span className="top">
+          <span className="lead">Pick your five. The reel rolls in under half a minute.</span>
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M12 36L36 12M16 12h20v20" fill="none" stroke="currentColor" strokeWidth="4" />
+          </svg>
+        </span>
         <span className="word display">Play</span>
       </Link>
 
