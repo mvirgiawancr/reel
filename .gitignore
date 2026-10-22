@@ -5,3 +5,7 @@ node_modules/
 .taste-skill/
 *.tsbuildinfo
 next-env.d.ts
+
+!.env.example
+brief.md
+DESIGN.md
