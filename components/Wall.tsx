@@ -22,7 +22,17 @@ export default function Wall({
   const loaded = useRef(new Set<string>());
   const report = useRef(onProgress);
   report.current = onProgress;
-  const total = useMemo(() => new Set(tiles.map((t) => t.image)).size, [tiles]);
+  const columns = useMemo(() => {
+    const out: Tile[][] = Array.from({ length: cols }, () => []);
+    if (!tiles.length) return out;
+    // each column needs enough posters to cover two screens' height, so the loop never shows a gap
+    const perCol = Math.max(8, Math.ceil(tiles.length / cols));
+    for (let c = 0; c < cols; c++)
+      for (let r = 0; r < perCol; r++) out[c].push(tiles[(c * 7 + r * 3 + r * cols) % tiles.length]);
+    return out;
+  }, [tiles, cols]);
+  // count only the posters the wall actually shows
+  const total = useMemo(() => new Set(columns.flat().map((t) => t.image)).size, [columns]);
 
   useEffect(() => {
     loaded.current = new Set();
@@ -39,22 +49,13 @@ export default function Wall({
     }
   };
 
-  const columns = useMemo(() => {
-    const out: Tile[][] = Array.from({ length: cols }, () => []);
-    if (!tiles.length) return out;
-    // each column needs enough posters to cover two screens' height, so the loop never shows a gap
-    const perCol = Math.max(8, Math.ceil(tiles.length / cols));
-    for (let c = 0; c < cols; c++)
-      for (let r = 0; r < perCol; r++) out[c].push(tiles[(c * 7 + r * 3 + r * cols) % tiles.length]);
-    return out;
-  }, [tiles, cols]);
 
   return (
     <div className={swapping ? "wall swapping" : "wall"} aria-hidden="true">
       {columns.map((col, c) => (
         <div key={c} className={c % 2 ? "wall-col down" : "wall-col"} style={{ ["--dur" as string]: `${70 + ((c * 17) % 40)}s` }}>
           {[...col, ...col].map((t, i) => (
-            <div className="wall-tile" key={i}>
+            <div className="wall-tile" key={t.image + i}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={small(t.image)}
