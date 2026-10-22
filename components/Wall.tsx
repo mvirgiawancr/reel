@@ -27,8 +27,11 @@ export default function Wall({
     if (!tiles.length) return out;
     // each column needs enough posters to cover two screens' height, so the loop never shows a gap
     const perCol = Math.max(8, Math.ceil(tiles.length / cols));
+    // walk the list with a prime stride, so neighbouring tiles never repeat the same poster
+    const n = tiles.length;
+    const stride = n % 13 ? 13 : 17;
     for (let c = 0; c < cols; c++)
-      for (let r = 0; r < perCol; r++) out[c].push(tiles[(c * 7 + r * 3 + r * cols) % tiles.length]);
+      for (let r = 0; r < perCol; r++) out[c].push(tiles[((r * cols + c) * stride + 5) % n]);
     return out;
   }, [tiles, cols]);
   // count only the posters the wall actually shows
@@ -51,7 +54,7 @@ export default function Wall({
 
 
   return (
-    <div className={swapping ? "wall swapping" : "wall"} aria-hidden="true">
+    <div className={swapping ? "wall swapping" : "wall"} style={cols === 8 ? undefined : { ["--cols" as string]: cols }} aria-hidden="true">
       {columns.map((col, c) => (
         <div key={c} className={c % 2 ? "wall-col down" : "wall-col"} style={{ ["--dur" as string]: `${70 + ((c * 17) % 40)}s` }}>
           {[...col, ...col].map((t, i) => (
