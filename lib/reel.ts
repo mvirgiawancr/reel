@@ -9,8 +9,9 @@ type Emit = (e: ReelEvent) => void;
 const TAKE = 12;
 const KEEP = 9;
 
-// Tags that sit on almost everything in a domain say nothing about one person's taste.
-const BLAND = new Set(["TV & Film", "Fiction", "Nonfiction", "Society & Culture", "Fashion", "Music", "Arts", "Books", "Literature", "Comedy"]);
+// Qloo's descriptive tags (themes, style, audience, mood) are the ones that cross domains; genre, format
+// and market tags stay inside one and say little about a person.
+const DESCRIPTIVE = /:(theme|style|audience|character|plot|emotional_tone|personal_style|motif|music|artist|viewer_characteristic|core_value):qloo$/;
 
 export async function runReel(favourites: Favourite[], emit: Emit): Promise<Reel> {
   const signal = favourites.map((f) => f.id);
@@ -42,7 +43,7 @@ export async function runReel(favourites: Favourite[], emit: Emit): Promise<Reel
           name: e.name,
           affinity: round3(e.query?.affinity ?? 0),
           image: entityImage(e),
-          tags: (e.tags ?? []).map((t) => t.name).filter((t) => !BLAND.has(t)).slice(0, 6),
+          tags: [...new Set((e.tags ?? []).filter((t) => t.type && DESCRIPTIVE.test(t.type)).map((t) => cap(t.name)))].slice(0, 12),
         };
       });
     emit({ type: "step", id: d.type, label: `${picks.length} in ${lower(d.label)}`, status: "done" });
@@ -68,21 +69,22 @@ export async function runReel(favourites: Favourite[], emit: Emit): Promise<Reel
   };
 }
 
+// The thread: descriptive tags that turn up on the most cards, then on the most matches.
 function sharedTraits(domains: ReelDomain[]) {
-  const total = new Map<string, number>();
-  for (const d of domains) {
-    const inDomain = new Map<string, number>();
-    d.picks.forEach((p) => new Set(p.tags).forEach((t) => inDomain.set(t, (inDomain.get(t) ?? 0) + 1)));
-    inDomain.forEach((c, t) => {
-      if (d.picks.length >= 3 && c / d.picks.length >= 0.8) return;
-      total.set(t, (total.get(t) ?? 0) + c);
-    });
-  }
+  const total = new Map<string, { count: number; cards: Set<string> }>();
+  for (const d of domains)
+    for (const p of d.picks)
+      for (const t of p.tags) {
+        const k = total.get(t) ?? { count: 0, cards: new Set<string>() };
+        k.count++;
+        k.cards.add(d.type);
+        total.set(t, k);
+      }
   return [...total.entries()]
-    .filter(([, c]) => c >= 2)
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .filter(([, v]) => v.cards.size >= 2)
+    .sort((a, b) => b[1].cards.size - a[1].cards.size || b[1].count - a[1].count || a[0].localeCompare(b[0]))
     .slice(0, 6)
-    .map(([name, count]) => ({ name, count }));
+    .map(([name, v]) => ({ name, count: v.count, cards: v.cards.size }));
 }
 
 const NAMER = `You name a person's taste from what the Qloo taste graph says they would also love.
@@ -99,7 +101,7 @@ async function nameTaste(favourites: Favourite[], domains: ReelDomain[], traits:
     .filter((d) => d.picks.length)
     .map((d) => {
       const weak = (d.average ?? 0) < top - 0.05 ? " WEAK" : "";
-      const lines = d.picks.slice(0, 5).map((p) => `  - ${p.name} (${p.affinity})${notes.get(p.id) ? ` | ${notes.get(p.id)}` : ""}`);
+      const lines = d.picks.slice(0, 5).map((p) => `  - ${p.name} (${p.affinity}) [${p.tags.slice(0, 6).join(", ")}]${notes.get(p.id) ? ` | ${notes.get(p.id)}` : ""}`);
       return `${d.type} (${d.label}, average ${d.average})${weak}\n${lines.join("\n")}`;
     })
     .join("\n");
@@ -123,5 +125,6 @@ async function nameTaste(favourites: Favourite[], domains: ReelDomain[], traits:
 }
 
 const clean = (s: string) => s.replace(/\s*[—–]\s*/g, ", ").replace(/^["']|["']$/g, "").trim();
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 const lower = (s: string) => (s === "TV" ? s : s.toLowerCase());
 const round3 = (n: number) => Math.round(n * 1000) / 1000;

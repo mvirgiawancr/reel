@@ -125,7 +125,7 @@ export interface Reel {
   title: string; // the taste, named in two to four words
   logline: string;
   domains: ReelDomain[];
-  traits: { name: string; count: number }[];
+  traits: { name: string; count: number; cards?: number }[];
 }
 
 export type ReelEvent =

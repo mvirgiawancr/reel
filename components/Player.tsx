@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Picker from "@/components/Picker";
+import Wall, { type Tile } from "@/components/Wall";
 import { shareCard } from "@/lib/share";
 import type { Favourite, Reel, ReelEvent, StepStatus } from "@/lib/types";
 
@@ -24,6 +25,20 @@ export default function Player() {
   const [reel, setReel] = useState<Reel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<Reel[]>([]);
+  const [tiles, setTiles] = useState<Tile[]>([]);
+  const lastId = favs[favs.length - 1]?.id ?? "";
+
+  // the wall beside the picker shows the world of the latest favourite
+  useEffect(() => {
+    let live = true;
+    fetch(lastId ? `/api/wall?id=${encodeURIComponent(lastId)}` : "/api/wall")
+      .then((r) => r.json())
+      .then((j) => live && j.tiles?.length && setTiles(j.tiles))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [lastId]);
 
   useEffect(() => {
     setHistory(loadHistory());
@@ -119,6 +134,9 @@ export default function Player() {
 
   return (
     <main className="pick">
+      <aside className="pick-wall" aria-hidden="true">
+        <Wall tiles={tiles} cols={4} />
+      </aside>
       <nav className="topbar" aria-label="Main">
         <Link href="/" className="mark">
           Reel
@@ -300,12 +318,12 @@ function ReelView({ reel, onAgain }: { reel: Reel; onAgain: () => void }) {
         {reel.traits.length > 0 && (
           <section className="card thread-card" aria-label="The thread">
             <h2 className="display">The thread</h2>
-            <p className="caption">Tags Qloo puts on your matches, and how many of them carry each.</p>
+            <p className="caption">Themes and moods Qloo tags on your matches, in the order they cross the most cards.</p>
             <ol className="threads">
               {reel.traits.map((t) => (
                 <li key={t.name}>
                   <span className="display">{t.name}</span>
-                  <span className="n">{t.count}</span>
+                  <span className="n">{t.cards ? `${t.cards} cards, ${t.count} matches` : t.count}</span>
                 </li>
               ))}
             </ol>
