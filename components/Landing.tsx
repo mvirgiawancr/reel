@@ -275,7 +275,7 @@ export default function Landing() {
       </section>
 
       <Link className="cta" href={playHref}>
-        <span className="lead">Pick your five. The reel takes about ten seconds to roll.</span>
+        <span className="lead">Pick your five. The reel rolls in under half a minute.</span>
         <svg viewBox="0 0 48 48" aria-hidden="true">
           <path d="M12 36L36 12M16 12h20v20" fill="none" stroke="currentColor" strokeWidth="4" />
         </svg>
