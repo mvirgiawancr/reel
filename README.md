@@ -15,6 +15,8 @@ Everything on a card comes from Qloo. The language model only names what Qloo fo
 | The thread | Tags on those matches (theme, style, audience, mood) | The themes that turn up on the most cards, counted |
 | The landing page | `GET /v2/insights` for one favourite | The moving wall of posters behind the headline; type a favourite and the wall recasts to that world |
 
+Then a language model reads Qloo's descriptions of the strongest matches and writes three things: a two-to-four-word name for the taste, one sentence about it, and one line per card. It is told to write only from that data. If the model is unavailable, the reel still plays, with a name made from the shared tags.
+
 ### Ask your reel: the agent
 
 After the reel plays, you can ask it anything: a film for a rainy Sunday, a gift for a friend with your taste, something for a long night drive. An agent (LLM tool calling over an OpenAI-compatible API) answers by choosing its own Qloo calls:
@@ -27,8 +29,6 @@ After the reel plays, you can ask it anything: a film for a rainy Sunday, a gift
 | `answer` | none | Finishes with 2 to 6 picks; any id that did not come back from `get_matches` is rejected |
 
 Every step the agent takes is shown under the question as it happens, and the answer says how many Qloo calls it made.
-
-Then a language model reads Qloo's descriptions of the strongest matches and writes three things: a two-to-four-word name for the taste, one sentence about it, and one line per card. It is told to write only from that data. If the model is unavailable, the reel still plays, with a name made from the shared tags.
 
 ## How it is built
 
