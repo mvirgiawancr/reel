@@ -53,13 +53,19 @@ export interface QlooSearchHit {
   id: string;
   name: string;
   types: string[];
+  image?: string;
+  year?: string;
 }
 
-export async function searchEntities(query: string, domain?: Domain): Promise<QlooSearchHit[]> {
-  const params: Record<string, string> = { query, take: "5" };
+export async function searchEntities(query: string, domain?: Domain, take = 5): Promise<QlooSearchHit[]> {
+  const params: Record<string, string> = { query, take: String(take) };
   if (domain) params.types = `urn:entity:${domain}`;
-  const d = await get<{ results?: { entity_id: string; name: string; types?: string[] }[] }>("/search", params);
-  return (d.results ?? []).map((r) => ({ id: r.entity_id, name: r.name, types: r.types ?? [] }));
+  const d = await get<{ results?: (QlooEntity & { types?: string[] })[] }>("/search", params);
+  return (d.results ?? []).map((r) => {
+    const p = r.properties ?? {};
+    const date = typeof p.release_date === "string" ? p.release_date : typeof p.release_year === "number" ? String(p.release_year) : "";
+    return { id: r.entity_id, name: r.name, types: r.types ?? [], image: entityImage(r), year: date.slice(0, 4) || undefined };
+  });
 }
 
 export interface QlooEntity {

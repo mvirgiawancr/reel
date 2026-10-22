@@ -92,3 +92,43 @@ export type StreamEvent =
   | { type: "step"; id: string; label: string; detail?: string; status: StepStatus }
   | { type: "result"; brief: BriefResult }
   | { type: "error"; message: string };
+
+/* ---------- Reel ---------- */
+
+/** Something the visitor loves, as Qloo knows it. */
+export interface Favourite {
+  id: string;
+  name: string;
+  kind: string; // "Film", "Music", "Person"…
+  image?: string;
+}
+
+export interface ReelPick {
+  id: string;
+  name: string;
+  affinity: number;
+  image?: string;
+  tags: string[];
+}
+
+export interface ReelDomain {
+  type: Domain;
+  label: string;
+  average: number | null;
+  picks: ReelPick[];
+  caption: string; // one line from the writer, or "" when the writer was unavailable
+}
+
+export interface Reel {
+  favourites: Favourite[];
+  madeAt: string;
+  title: string; // the taste, named in two to four words
+  logline: string;
+  domains: ReelDomain[];
+  traits: { name: string; count: number }[];
+}
+
+export type ReelEvent =
+  | { type: "step"; id: string; label: string; status: StepStatus }
+  | { type: "result"; reel: Reel }
+  | { type: "error"; message: string };

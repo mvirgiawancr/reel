@@ -347,7 +347,7 @@ export async function runBrief(input: BriefInput, emit: Emit): Promise<BriefResu
 }
 
 /** Run fn over items with at most `limit` in flight, keeping the input order. */
-async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+export async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out = new Array<R>(items.length);
   let next = 0;
   await Promise.all(
