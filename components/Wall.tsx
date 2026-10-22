@@ -1,17 +1,44 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 export type Tile = { name: string; image: string; domain: string; affinity?: number; seed?: string };
 
-/** Columns of covers rolling up and down at different speeds, like end credits. */
-// the pink under a picture only shows once it has loaded, so an empty tile stays dark
-const lit = (img: HTMLImageElement) => {
-  img.classList.add("in");
-  img.parentElement?.classList.add("lit");
-};
+// Qloo serves each picture at several widths; the wall's tiles are small and dimmed, so 240px is plenty.
+export const small = (url: string) => url.replace(/-\d+x-auto\.jpg$/, "-240x-auto.jpg");
 
-export default function Wall({ tiles, swapping, cols = 8 }: { tiles: Tile[]; swapping?: boolean; cols?: number }) {
+/** Columns of covers rolling up and down at different speeds, like end credits. */
+export default function Wall({
+  tiles,
+  swapping,
+  cols = 8,
+  onProgress,
+}: {
+  tiles: Tile[];
+  swapping?: boolean;
+  cols?: number;
+  onProgress?: (loaded: number, total: number) => void;
+}) {
+  const loaded = useRef(new Set<string>());
+  const report = useRef(onProgress);
+  report.current = onProgress;
+  const total = useMemo(() => new Set(tiles.map((t) => t.image)).size, [tiles]);
+
+  useEffect(() => {
+    loaded.current = new Set();
+    report.current?.(0, total);
+  }, [tiles, total]);
+
+  // the pink under a picture only shows once it has loaded, so an empty tile stays dark
+  const lit = (img: HTMLImageElement, src: string) => {
+    img.classList.add("in");
+    img.parentElement?.classList.add("lit");
+    if (!loaded.current.has(src)) {
+      loaded.current.add(src);
+      report.current?.(loaded.current.size, total);
+    }
+  };
+
   const columns = useMemo(() => {
     const out: Tile[][] = Array.from({ length: cols }, () => []);
     if (!tiles.length) return out;
@@ -29,7 +56,18 @@ export default function Wall({ tiles, swapping, cols = 8 }: { tiles: Tile[]; swa
           {[...col, ...col].map((t, i) => (
             <div className="wall-tile" key={i}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={t.image} alt="" width={200} height={300} ref={(el) => { if (el?.complete && el.naturalWidth) lit(el); }} onLoad={(e) => lit(e.currentTarget)} />
+              <img
+                src={small(t.image)}
+                alt=""
+                width={200}
+                height={300}
+                fetchPriority={i < 3 ? "high" : "auto"}
+                ref={(el) => {
+                  if (el?.complete && el.naturalWidth) lit(el, t.image);
+                }}
+                onLoad={(e) => lit(e.currentTarget, t.image)}
+                onError={(e) => lit(e.currentTarget, t.image)}
+              />
             </div>
           ))}
         </div>

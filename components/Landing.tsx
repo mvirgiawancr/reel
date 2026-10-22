@@ -49,14 +49,16 @@ const INDEX = [
   },
 ];
 
-export default function Landing() {
-  const [tiles, setTiles] = useState<Tile[]>([]);
+export default function Landing({ initialTiles = [] }: { initialTiles?: Tile[] }) {
+  const [tiles, setTiles] = useState<Tile[]>(initialTiles);
+  const [progress, setProgress] = useState<[number, number]>([0, initialTiles.length]);
   const [swapping, setSwapping] = useState(false);
   const [fav, setFav] = useState<Favourite | null>(null);
   const [tab, setTab] = useState("movie");
   const [tip, setTip] = useState("Point at anything in the lists to see what it means.");
 
   useEffect(() => {
+    if (initialTiles.length) return;
     fetch("/api/wall")
       .then((r) => r.json())
       .then((j) => setTiles(j.tiles ?? []))
@@ -101,7 +103,7 @@ export default function Landing() {
   return (
     <>
       <header className="hero">
-        <Wall tiles={tiles} swapping={swapping} />
+        <Wall tiles={tiles} swapping={swapping} onProgress={(a, b) => setProgress([a, b])} />
         <nav className="topbar" aria-label="Main">
           <Link href="/" className="mark">
             Reel
@@ -126,7 +128,13 @@ export default function Landing() {
             }
           />
           <div className="now" aria-live="polite">
-            {swapping ? (
+            {!fav && progress[1] > 0 && progress[0] < progress[1] ? (
+              <>
+                Threading the reel: {progress[0]} of {progress[1]} posters
+              </>
+            ) : !fav && progress[1] === 0 ? (
+              <>Threading the reel…</>
+            ) : swapping ? (
               <>Finding what fans of <b>{fav?.name}</b> also love…</>
             ) : fav ? (
               <>

@@ -34,6 +34,12 @@ img { display: block; max-width: 100%; }
 /* duotone: the picture in grey, multiplied onto pink, then lifted to burgundy in the shadows */
 .wall-tile { position: relative; aspect-ratio: 2 / 3; background: var(--surface); overflow: hidden; transition: background-color 900ms ease; }
 .wall-tile.lit { background: var(--ink); }
+/* while a poster is on its way, its tile flickers like a projector warming up, each at its own beat */
+.wall-tile:not(.lit) { animation: flicker 1.6s steps(2, jump-none) infinite; }
+.wall-col:nth-child(2n) .wall-tile:not(.lit) { animation-delay: -0.4s; }
+.wall-col:nth-child(3n) .wall-tile:not(.lit) { animation-delay: -0.9s; }
+.wall-tile:nth-child(3n):not(.lit) { animation-duration: 2.2s; }
+@keyframes flicker { from { background-color: var(--surface); } to { background-color: #651030; } }
 .wall-tile img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15); mix-blend-mode: multiply; opacity: 0; transition: opacity 900ms ease; }
 .wall-tile img.in { opacity: 1; }
 .wall-tile::after { content: ""; position: absolute; inset: 0; background: var(--bg); mix-blend-mode: lighten; }
@@ -191,7 +197,7 @@ img { display: block; max-width: 100%; }
   .cells a, .cells button { height: 60px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .wall-col, .marquee-track { animation: none; }
+  .wall-col, .marquee-track, .wall-tile:not(.lit) { animation: none; }
   .rise { opacity: 1; transform: none; transition: none; }
 }
 
