@@ -49,7 +49,7 @@ img { display: block; max-width: 100%; }
 .hero .line { position: relative; z-index: 1; font-size: clamp(120px, 15vw, 236px); white-space: nowrap; }
 .hero .line.one { grid-row: 1; padding: 64px var(--margin) 0; }
 .hero .line.two { grid-row: 3; justify-self: end; padding: 0 var(--margin) 6px; line-height: 0.78; }
-.topbar { position: absolute; z-index: 2; top: 20px; right: var(--margin); display: flex; gap: 24px; align-items: baseline; font-size: 15px; line-height: 1; }
+.topbar { position: absolute; z-index: 2; top: 16px; right: var(--margin); display: flex; gap: 24px; align-items: baseline; font-size: 15px; line-height: 1; background: var(--bg); padding: 10px 14px 8px; }
 .topbar .mark { font: 400 28px/1 var(--font-display), sans-serif; letter-spacing: 0.02em; text-decoration: none; }
 .topbar a:not(.mark) { text-decoration: none; }
 .topbar a:hover { text-decoration: underline; text-underline-offset: 4px; }

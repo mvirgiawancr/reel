@@ -29,7 +29,7 @@ export default function Wall({ tiles, swapping, cols = 8 }: { tiles: Tile[]; swa
           {[...col, ...col].map((t, i) => (
             <div className="wall-tile" key={i}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={t.image} alt="" width={200} height={300} loading={i < 6 ? "eager" : "lazy"} ref={(el) => { if (el?.complete && el.naturalWidth) lit(el); }} onLoad={(e) => lit(e.currentTarget)} />
+              <img src={t.image} alt="" width={200} height={300} ref={(el) => { if (el?.complete && el.naturalWidth) lit(el); }} onLoad={(e) => lit(e.currentTarget)} />
             </div>
           ))}
         </div>
