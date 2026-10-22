@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Picker from "@/components/Picker";
 import Wall, { type Tile } from "@/components/Wall";
 import { shareCard } from "@/lib/share";
-import type { Favourite, Reel, ReelEvent, StepStatus } from "@/lib/types";
+import type { AskAnswer, AskEvent, Favourite, Reel, ReelEvent, StepStatus } from "@/lib/types";
 
 const HISTORY_KEY = "reel.history.v1";
 type Step = { id: string; label: string; status: StepStatus };
@@ -216,7 +216,7 @@ function ReelView({ reel, onAgain }: { reel: Reel; onAgain: () => void }) {
   const track = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
   const domains = reel.domains.filter((d) => d.picks.length);
-  const total = 1 + domains.length + (reel.traits.length ? 1 : 0) + 2;
+  const total = 1 + domains.length + (reel.traits.length ? 1 : 0) + 3;
 
   const go = useCallback((i: number) => {
     const el = track.current;
@@ -231,6 +231,8 @@ function ReelView({ reel, onAgain }: { reel: Reel; onAgain: () => void }) {
     const onScroll = () => setAt(Math.round(el.scrollLeft / el.clientWidth));
     el.addEventListener("scroll", onScroll, { passive: true });
     const onKey = (e: KeyboardEvent) => {
+      // arrow keys inside the question box move the caret, not the reel
+      if ((e.target as HTMLElement | null)?.closest("input, textarea")) return;
       if (e.key === "ArrowRight") go(Math.round(el.scrollLeft / el.clientWidth) + 1);
       if (e.key === "ArrowLeft") go(Math.round(el.scrollLeft / el.clientWidth) - 1);
     };
@@ -330,6 +332,8 @@ function ReelView({ reel, onAgain }: { reel: Reel; onAgain: () => void }) {
           </section>
         )}
 
+        <AskCard reel={reel} />
+
         <section className="card credits-card" aria-label="End credits">
           <div className="credits" data-playing={at === total - 2}>
             <p className="display credits-head">{reel.title}</p>
@@ -360,6 +364,144 @@ function ReelView({ reel, onAgain }: { reel: Reel; onAgain: () => void }) {
         </button>
       </div>
     </main>
+  );
+}
+
+const EXAMPLES = ["A film for a rainy Sunday", "A gift for a friend with my taste", "Something for a long night drive", "A book to read next"];
+const DOMAIN_LABEL: Record<string, string> = { artist: "Music", movie: "Film", tv_show: "TV", book: "Book", podcast: "Podcast", brand: "Brand" };
+
+/** Ask your reel: an agent that chooses its own Qloo calls to answer, from this reel's favourites. */
+function AskCard({ reel }: { reel: Reel }) {
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [steps, setSteps] = useState<{ id: string; label: string; detail?: string; status: StepStatus }[]>([]);
+  const [answer, setAnswer] = useState<AskAnswer | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function ask(question: string) {
+    const text = question.trim();
+    if (text.length < 4 || busy) return;
+    setQ(text);
+    setBusy(true);
+    setError(null);
+    setAnswer(null);
+    setSteps([]);
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text, favourites: reel.favourites, title: reel.title, traits: reel.traits.map((t) => t.name) }),
+      });
+      if (!res.ok || !res.body) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `The request failed (${res.status}).`);
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        buf += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const ev = JSON.parse(line) as AskEvent;
+          if (ev.type === "step")
+            setSteps((prev) => {
+              const i = prev.findIndex((s) => s.id === ev.id);
+              const s = { id: ev.id, label: ev.label, detail: ev.detail, status: ev.status };
+              return i === -1 ? [...prev, s] : prev.map((p, k) => (k === i ? s : p));
+            });
+          else if (ev.type === "result") setAnswer(ev.answer);
+          else if (ev.type === "error") throw new Error(ev.message);
+        }
+        if (done) break;
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card ask-card" aria-label="Ask your reel">
+      <div className="ask-side">
+        <h2 className="display">Ask your reel</h2>
+        <p className="ask-lede">An agent that knows your taste. It picks its own Qloo searches to answer, and only suggests what Qloo returns.</p>
+        <form
+          className="ask-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            ask(q);
+          }}
+        >
+          <label htmlFor="ask-q" className="sr-only">
+            Your question
+          </label>
+          <input id="ask-q" name="question" autoComplete="off" maxLength={200} placeholder="What should I watch tonight…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <button className="btn" type="submit" disabled={busy || q.trim().length < 4}>
+            Ask
+          </button>
+        </form>
+        <div className="ask-examples">
+          {EXAMPLES.map((x) => (
+            <button key={x} type="button" disabled={busy} onClick={() => ask(x)}>
+              {x}
+            </button>
+          ))}
+        </div>
+        {steps.length > 0 && (
+          <ol className="ask-trace" aria-live="polite" aria-label="What the agent did">
+            {steps.map((s) => (
+              <li key={s.id} data-status={s.status}>
+                <span>
+                  {s.label}
+                  {s.status === "running" ? "…" : ""}
+                </span>
+                {s.detail && <span className="d">{s.detail}</span>}
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+      <div className="ask-out" aria-live="polite">
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        {!answer && !error && <p className="ask-wait">{busy ? "The agent is working through Qloo…" : "Ask something, or try one of the examples."}</p>}
+        {answer && (
+          <>
+            <p className="ask-answer">{answer.answer}</p>
+            <ul className="ask-picks">
+              {answer.picks.map((p) => (
+                <li key={p.id}>
+                  {p.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.image} alt={p.name} width={120} height={180} />
+                  ) : (
+                    <span className="noimg" />
+                  )}
+                  <div>
+                    <h3 className="display">{p.name}</h3>
+                    <p className="meta">
+                      {DOMAIN_LABEL[p.domain] ?? p.domain} &middot; affinity {p.affinity.toFixed(2)}
+                    </p>
+                    <p className="why">{p.why}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="ask-foot">
+              {answer.calls} Qloo calls, chosen by the agent. Every pick came back from the taste graph.
+            </p>
+          </>
+        )}
+      </div>
+    </section>
   );
 }
 

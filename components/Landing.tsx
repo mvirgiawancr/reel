@@ -41,6 +41,7 @@ const INDEX = [
     title: "Yours to keep",
     items: [
       ["Your taste, named", "Two to four words, like a film title."],
+      ["Ask your reel", "An agent picks its own Qloo searches to answer: a film for tonight, a gift, a drive."],
       ["The end credits", "Every match on one rolling page."],
       ["A story-sized card", "1080 by 1920, saved as an image."],
       ["Any five favourites", "Mix a song, a film and a shoe brand if you like."],
@@ -251,7 +252,8 @@ export default function Landing({ initialTiles = [] }: { initialTiles?: Tile[] }
             </div>
           </div>
           <p className="rise">
-            <b>Finally,</b> the reel plays: a title card, one card per domain, the threads that tie them, and the end credits. The last card saves as a
+            <b>Finally,</b> the reel plays: a title card, one card per domain, the threads that tie them, and the end credits. Then ask it anything, like a
+            film for a rainy Sunday, and an agent works out which Qloo searches to run and answers only with what comes back. The last card saves as a
             story-sized image.
           </p>
         </div>

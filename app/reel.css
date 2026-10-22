@@ -318,3 +318,40 @@ img { display: block; max-width: 100%; }
   .credits { padding-top: 0; }
   .credits-card { overflow-y: auto; }
 }
+
+/* ---------- /play: ask your reel ---------- */
+.ask-card { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: start; }
+.ask-side, .ask-out { min-height: 0; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+.ask-side h2 { font-size: clamp(64px, 7vw, 120px); margin: 0 0 12px; }
+.ask-lede { margin: 0 0 20px; max-width: 40ch; color: var(--muted); }
+.ask-form { display: flex; }
+.ask-form input { flex: 1; min-width: 0; height: 52px; padding: 0 14px; border: 2px solid var(--ink); border-right: 0; background: transparent; font-size: 18px; border-radius: 0; }
+.ask-form input::placeholder { color: var(--muted); opacity: 1; }
+.ask-form input:focus-visible { outline: none; background: var(--surface); }
+.ask-examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ask-examples button { padding: 8px 12px; background: var(--surface); border: 0; cursor: pointer; font-size: var(--step-small); text-align: left; }
+.ask-examples button:hover:not([disabled]) { background: var(--ink); color: var(--accent-ink); }
+.ask-examples button[disabled] { opacity: 0.5; cursor: default; }
+.ask-trace { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 8px; font-size: var(--step-small); }
+.ask-trace li { display: grid; gap: 2px; padding-left: 14px; position: relative; }
+.ask-trace li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 6px; height: 6px; background: var(--ink); }
+.ask-trace li[data-status="running"] { color: var(--muted); }
+.ask-trace li[data-status="running"]::before { background: var(--muted); }
+.ask-trace .d { color: var(--muted); font-style: italic; }
+.ask-wait { color: var(--muted); font-size: var(--step-lead); margin: 0; }
+.ask-answer { font-style: italic; font-size: var(--step-lead); line-height: 1.3; margin: 0 0 20px; max-width: 46ch; }
+.ask-picks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.ask-picks li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; background: var(--surface); padding: 10px; align-items: start; }
+.ask-picks img, .ask-picks .noimg { width: 96px; height: 144px; object-fit: cover; background: var(--bg); }
+.ask-picks h3 { font-size: 30px; margin: 2px 0 6px; overflow-wrap: anywhere; }
+.ask-picks .meta { margin: 0 0 6px; font-size: var(--step-small); color: var(--muted); font-variant-numeric: tabular-nums; }
+.ask-picks .why { margin: 0; font-size: 16px; line-height: 1.35; }
+.ask-foot { margin: 16px 0 0; font-size: var(--step-small); color: var(--muted); }
+@media (max-width: 760px) {
+  .ask-card { display: block; overflow-y: auto; overscroll-behavior: contain; }
+  .ask-side, .ask-out { max-height: none; overflow: visible; }
+  .ask-out { margin-top: 24px; }
+  .ask-side h2 { font-size: 56px; }
+  .ask-lede { display: none; }
+  .ask-picks { grid-template-columns: 1fr; }
+}

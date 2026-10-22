@@ -128,6 +128,27 @@ export interface Reel {
   traits: { name: string; count: number; cards?: number }[];
 }
 
+export interface AskPick {
+  id: string;
+  name: string;
+  domain: Domain;
+  affinity: number;
+  image?: string;
+  why: string;
+}
+
+export interface AskAnswer {
+  question: string;
+  answer: string;
+  picks: AskPick[];
+  calls: number; // Qloo calls the agent made
+}
+
+export type AskEvent =
+  | { type: "step"; id: string; label: string; detail?: string; status: StepStatus }
+  | { type: "result"; answer: AskAnswer }
+  | { type: "error"; message: string };
+
 export type ReelEvent =
   | { type: "step"; id: string; label: string; status: StepStatus }
   | { type: "result"; reel: Reel }

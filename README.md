@@ -15,12 +15,26 @@ Everything on a card comes from Qloo. The language model only names what Qloo fo
 | The thread | Tags on those matches (theme, style, audience, mood) | The themes that turn up on the most cards, counted |
 | The landing page | `GET /v2/insights` for one favourite | The moving wall of posters behind the headline; type a favourite and the wall recasts to that world |
 
+### Ask your reel: the agent
+
+After the reel plays, you can ask it anything: a film for a rainy Sunday, a gift for a friend with your taste, something for a long night drive. An agent (LLM tool calling over an OpenAI-compatible API) answers by choosing its own Qloo calls:
+
+| Tool | Qloo endpoint | What the agent uses it for |
+| --- | --- | --- |
+| `find_tags` | `GET /v2/tags`, scoped with `filter.parents.types` | Turns the mood or occasion in the question into Qloo tags for the right domain ("rainy Sunday" becomes Cozy, Comforting) |
+| `search_entities` | `GET /search` | Looks up anything the question names |
+| `get_matches` | `GET /v2/insights` with your favourites as `signal.interests.entities`, plus tags as `signal.interests.tags` (lean) or `filter.tags` (must) | Gets matches in the domain it chose, and tries again with other tags when the first results do not fit |
+| `answer` | none | Finishes with 2 to 6 picks; any id that did not come back from `get_matches` is rejected |
+
+Every step the agent takes is shown under the question as it happens, and the answer says how many Qloo calls it made.
+
 Then a language model reads Qloo's descriptions of the strongest matches and writes three things: a two-to-four-word name for the taste, one sentence about it, and one line per card. It is told to write only from that data. If the model is unavailable, the reel still plays, with a name made from the shared tags.
 
 ## How it is built
 
 - Next.js 16 (App Router), React 19, TypeScript, plain CSS. No UI library.
 - `lib/qloo.ts`: the Qloo client, with a small in-memory cache and retry on 429 and 5xx.
+- `lib/ask.ts`: the Ask your reel agent loop and its four tools.
 - `lib/reel.ts`: the pipeline. Six insights calls run three at a time, the thread is counted, then the model names the taste.
 - `app/api/reel`: streams progress as NDJSON, so the countdown shows each real call as it finishes.
 - `lib/share.ts`: draws the 1080 by 1920 card on a canvas in the browser, with posters loaded through a same-origin proxy (`app/api/img`, limited to `images.qloo.com`).

@@ -39,11 +39,11 @@ export interface QlooTag {
   type?: string;
 }
 
-export async function findTags(query: string): Promise<QlooTag[]> {
-  const d = await get<{ results?: { tags?: { id?: string; tag_id?: string; name: string; type?: string; subtype?: string }[] } }>(
-    "/v2/tags",
-    { "filter.query": query, take: "8" },
-  );
+export async function findTags(query: string, domain?: Domain): Promise<QlooTag[]> {
+  const params: Record<string, string> = { "filter.query": query, take: "8" };
+  // only tags that apply to that kind of thing (a film's tags, not a restaurant's)
+  if (domain) params["filter.parents.types"] = `urn:entity:${domain}`;
+  const d = await get<{ results?: { tags?: { id?: string; tag_id?: string; name: string; type?: string; subtype?: string }[] } }>("/v2/tags", params);
   return (d.results?.tags ?? [])
     .map((t) => ({ id: t.id ?? t.tag_id ?? "", name: t.name, type: t.type ?? t.subtype }))
     .filter((t) => t.id);
@@ -115,6 +115,8 @@ export interface InsightSignals {
   entities: string[];
   age: AgeBand[];
   gender: Gender | null;
+  /** tags every result must carry, not just lean towards */
+  mustTags?: string[];
 }
 
 export async function insights(domain: Domain, s: InsightSignals, take = 8): Promise<QlooEntity[]> {
@@ -123,6 +125,7 @@ export async function insights(domain: Domain, s: InsightSignals, take = 8): Pro
   if (s.entities.length) params["signal.interests.entities"] = s.entities.join(",");
   if (s.age.length) params["signal.demographics.age"] = s.age.join(",");
   if (s.gender) params["signal.demographics.gender"] = s.gender;
+  if (s.mustTags?.length) params["filter.tags"] = s.mustTags.join(",");
   // Places without a location are slow on the hackathon host: give them one short try instead of holding up the brief.
   const opts = domain === "place" ? { timeoutMs: 40_000, attempts: 1 } : {};
   const d = await get<{ results?: { entities?: QlooEntity[] } }>("/v2/insights", params, opts);
