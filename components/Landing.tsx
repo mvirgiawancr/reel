@@ -87,6 +87,11 @@ export default function Landing({ initialTiles = [] }: { initialTiles?: Tile[] }
       }
     } finally {
       setSwapping(false);
+      // the answer lives in the showcase, far below the fold: take the visitor there
+      (document.activeElement as HTMLElement | null)?.blur(); // a focused input holds the scroll on mobile
+      document.getElementById("showcase")?.scrollIntoView({
+        behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      });
     }
   }
 
@@ -156,7 +161,7 @@ export default function Landing({ initialTiles = [] }: { initialTiles?: Tile[] }
         </div>
       </div>
 
-      <section className="showcase" aria-labelledby="showcase-title">
+      <section className="showcase" id="showcase" aria-labelledby="showcase-title">
         <div className="plate rise">
           <div className="plate-frame">
             {lead && (
